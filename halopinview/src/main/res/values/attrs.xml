@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="HaloPinView">
+        <attr name="pinCount" format="integer" />
+        <attr name="inActiveRadius" format="dimension" />
+        <attr name="activeRadius" format="dimension" />
+        <attr name="activePinColor" format="color" />
+        <attr name="inActivePinColor" format="color" />
+    </declare-styleable>
+</resources>
