@@ -1,0 +1,3 @@
+include ':halopinview'
+include ':app'
+rootProject.name = "PinView"
