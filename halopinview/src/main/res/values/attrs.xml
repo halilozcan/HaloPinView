@@ -7,5 +7,7 @@
         <attr name="activeRadius" format="dimension" />
         <attr name="activePinColor" format="color" />
         <attr name="inActivePinColor" format="color" />
+        <attr name="isAnimationActive" format="boolean" />
+        <attr name="animationDuration" format="integer" />
     </declare-styleable>
 </resources>

@@ -1,5 +1,7 @@
 package com.halilozcan.halopinlib
 
+import android.animation.Animator
+import android.animation.ObjectAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -35,6 +37,8 @@ class HaloPinView @JvmOverloads constructor(
 
     private var pinCounts = 4
 
+    private var animationDuration = 1000L
+
     private var inActivePinRadius = 10f
     private var activePinRadius = 20f
 
@@ -43,10 +47,36 @@ class HaloPinView @JvmOverloads constructor(
 
     private var viewRect = RectF()
 
-    private var onPinFilledListener: ((String) -> Unit)? = null
+    private var onPinFilledListener: ((Int) -> Unit)? = null
+
+    private var correctPin = Integer.MIN_VALUE
+
+    private var isCorrectPinEntered = false
+    private var isAnimationActive = false
+
+    private val pinWiggleAnimator = ObjectAnimator.ofFloat(
+        this,
+        "translationX",
+        0f,
+        25f,
+        -25f,
+        25f,
+        -25f,
+        15f,
+        -15f,
+        6f,
+        -6f,
+        0f
+    ).apply {
+        addListener(object : AbstractAnimatorListener() {
+            override fun onAnimationEnd(animation: Animator?) {
+                super.onAnimationEnd(animation)
+                initPinItems()
+            }
+        })
+    }
 
     init {
-
         context.withStyledAttributes(attributeSet, R.styleable.HaloPinView) {
             pinCounts = getInt(R.styleable.HaloPinView_pinCount, 4)
             inActivePinRadius =
@@ -54,38 +84,27 @@ class HaloPinView @JvmOverloads constructor(
             activePinRadius = getDimension(R.styleable.HaloPinView_activeRadius, activePinRadius)
             inActivePinColor = getColor(R.styleable.HaloPinView_inActivePinColor, inActivePinColor)
             activePinColor = getColor(R.styleable.HaloPinView_activePinColor, activePinColor)
+            isAnimationActive =
+                getBoolean(R.styleable.HaloPinView_isAnimationActive, isAnimationActive)
+            animationDuration = getInt(
+                R.styleable.HaloPinView_animationDuration,
+                animationDuration.toInt()
+            ).toLong()
         }
         activePinPaint.color = activePinColor
         activePinPaint.style = Paint.Style.FILL_AND_STROKE
+        activePinPaint.isAntiAlias = true
 
         inActivePinPaint.color = inActivePinColor
         inActivePinPaint.style = Paint.Style.FILL_AND_STROKE
+        inActivePinPaint.isAntiAlias = true
         initPinItems()
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-
         viewRect.set(0f, 0f, w.toFloat(), h.toFloat())
-        calculatePoints()
-    }
-
-    private fun calculatePoints() {
-
-        if (inActivePinRadius >= activePinRadius) {
-            activePinRadius = inActivePinRadius
-            inActivePinRadius = activePinRadius / 2f
-        }
-
-        if (activePinRadius > viewRect.height() / 2f) {
-            activePinRadius = viewRect.height() / 2f
-            inActivePinRadius = activePinRadius / 2
-        }
-
-        if (viewRect.width() <= (activePinRadius * (pinCounts + 1)) + (pinCounts * 2 * activePinRadius)) {
-            activePinRadius = viewRect.width() / ((2 * pinCounts) + (pinCounts + 1))
-            inActivePinRadius = activePinRadius / 2f
-        }
+        calculateRadiusMetrics()
     }
 
     override fun onDraw(canvas: Canvas?) {
@@ -94,14 +113,14 @@ class HaloPinView @JvmOverloads constructor(
         pinItems.forEachIndexed { index, pinItem ->
             if (pinItem.isEntered) {
                 canvas?.drawCircle(
-                    ((3 * (index)) + 2) * activePinRadius,
+                    (3 * index + 2) * activePinRadius,
                     viewRect.height() / 2f,
                     activePinRadius,
                     activePinPaint
                 )
             } else {
                 canvas?.drawCircle(
-                    ((3 * (index)) + 2) * activePinRadius,
+                    (3 * index + 2) * activePinRadius,
                     viewRect.height() / 2f,
                     inActivePinRadius,
                     inActivePinPaint
@@ -110,19 +129,23 @@ class HaloPinView @JvmOverloads constructor(
         }
     }
 
-    fun setOnPinFilledListener(onPinFilledListener: ((String) -> Unit)?) {
+    fun setOnPinFilledListener(onPinFilledListener: ((Int) -> Unit)?) {
         this.onPinFilledListener = onPinFilledListener
     }
 
     fun enterPin(number: Int) {
         if (lastPinIndex != pinItems.lastIndex) {
-            pinItems[++lastPinIndex] = PinItem(number, true)
             invalidate()
-
+            pinItems[++lastPinIndex] = PinItem(number, true)
             if (lastPinIndex == pinItems.lastIndex) {
-                onPinFilledListener?.invoke(getEnteredPin())
+                finishEnterPin()
             }
         }
+    }
+
+    fun setCorrectPin(correctPin: Int) {
+        this.correctPin = correctPin
+        isCorrectPinEntered = true
     }
 
     fun getItemCount() = pinCounts
@@ -134,12 +157,88 @@ class HaloPinView @JvmOverloads constructor(
         }
     }
 
-    private fun getEnteredPin(): String {
+    fun setNumberOfPins(numberOfPins: Int) {
+        pinCounts = numberOfPins
+    }
+
+    fun deleteEnteredPins() {
+        initPinItems()
+    }
+
+    fun setAnimationDuration(animationDurationInMillisecond: Long) {
+        animationDuration = animationDurationInMillisecond
+    }
+
+    fun setAnimationState(isAnimationActive: Boolean) {
+        this.isAnimationActive = isAnimationActive
+    }
+
+    fun setActivePinColor(color: Int) {
+        activePinColor = color
+    }
+
+    fun setInActivePinColor(color: Int) {
+        inActivePinColor = color
+    }
+
+    fun setActivePinRadius(radius: Float) {
+        activePinRadius = radius
+    }
+
+    fun setInActivePinRadius(radius: Float) {
+        inActivePinRadius = radius
+    }
+
+    private fun calculateRadiusMetrics() {
+        if (inActivePinRadius > activePinRadius) {
+            activePinRadius = inActivePinRadius
+            inActivePinRadius = activePinRadius / 2f
+        }
+
+        if (activePinRadius > viewRect.height() / 2f) {
+            activePinRadius = viewRect.height() / (2f / 3f)
+            inActivePinRadius = activePinRadius / 2
+        }
+
+        if (viewRect.width() < getTotalWidth()) {
+            activePinRadius = viewRect.width() / getSumOfVertices()
+            inActivePinRadius = activePinRadius / 2f
+        }
+    }
+
+    private fun finishEnterPin() {
+        if (isCorrectPinEntered) {
+            if (isEnteredPinOk()) {
+                onPinFilledListener?.invoke(getEnteredPin())
+                initPinItems()
+            } else {
+                if (isAnimationActive) {
+                    startWrongAnswerAnimation()
+                } else {
+                    onPinFilledListener?.invoke(getEnteredPin())
+                    initPinItems()
+                }
+            }
+        } else {
+            onPinFilledListener?.invoke(getEnteredPin())
+            initPinItems()
+        }
+    }
+
+    private fun getTotalWidth() = getTotalWidthOfSpaces() + getTotalWidthOfCircles()
+
+    private fun getTotalWidthOfSpaces() = (activePinRadius * (pinCounts + 1))
+
+    private fun getTotalWidthOfCircles() = (pinCounts * 2 * activePinRadius)
+
+    private fun getSumOfVertices() = ((2 * pinCounts) + (pinCounts + 1))
+
+    private fun getEnteredPin(): Int {
         val pinBuilder = StringBuilder()
         pinItems.forEach {
             pinBuilder.append(it.number)
         }
-        return pinBuilder.toString()
+        return pinBuilder.toString().toInt()
     }
 
     private fun initPinItems() {
@@ -148,11 +247,13 @@ class HaloPinView @JvmOverloads constructor(
         repeat(pinCounts) {
             pinItems.add(PinItem())
         }
-
         invalidate()
     }
 
-    fun deleteEnteredPins() {
-        initPinItems()
+    private fun isEnteredPinOk() = getEnteredPin() == correctPin
+
+    private fun startWrongAnswerAnimation() {
+        pinWiggleAnimator.duration = animationDuration
+        pinWiggleAnimator.start()
     }
 }
