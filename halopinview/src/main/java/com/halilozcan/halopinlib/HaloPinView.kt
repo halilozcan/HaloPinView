@@ -6,7 +6,6 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.content.withStyledAttributes
@@ -37,6 +36,8 @@ class HaloPinView @JvmOverloads constructor(
 
     private var pinCounts = 4
 
+    private var pinXLocations = Array(pinCounts) { 0f }
+
     private var animationDuration = 1000L
 
     private var inActivePinRadius = 10f
@@ -45,14 +46,14 @@ class HaloPinView @JvmOverloads constructor(
     private var inActivePinColor = Color.DKGRAY
     private var activePinColor = Color.WHITE
 
-    private var viewRect = RectF()
-
     private var onPinFilledListener: ((Int) -> Unit)? = null
 
     private var correctPin = Integer.MIN_VALUE
 
     private var isCorrectPinEntered = false
     private var isAnimationActive = false
+
+    private var pinYLocation = 0f
 
     private val pinWiggleAnimator = ObjectAnimator.ofFloat(
         this,
@@ -79,6 +80,7 @@ class HaloPinView @JvmOverloads constructor(
     init {
         context.withStyledAttributes(attributeSet, R.styleable.HaloPinView) {
             pinCounts = getInt(R.styleable.HaloPinView_pinCount, 4)
+            pinXLocations = Array(pinCounts) { 0f }
             inActivePinRadius =
                 getDimension(R.styleable.HaloPinView_inActiveRadius, inActivePinRadius)
             activePinRadius = getDimension(R.styleable.HaloPinView_activeRadius, activePinRadius)
@@ -101,27 +103,32 @@ class HaloPinView @JvmOverloads constructor(
         initPinItems()
     }
 
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
-        viewRect.set(0f, 0f, w.toFloat(), h.toFloat())
-        calculateRadiusMetrics()
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+        val measuredWidth = if (pinCounts <= 0) 0 else measureWidth(widthMeasureSpec)
+        val measuredHeight = if (pinCounts <= 0) 0 else measureHeight(heightMeasureSpec)
+
+        pinYLocation = measuredHeight.toFloat() / 2f
+
+        calculateRadiusMetrics(measuredWidth, measuredHeight)
+
+        setMeasuredDimension(measuredWidth, measuredHeight)
     }
 
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
-
         pinItems.forEachIndexed { index, pinItem ->
             if (pinItem.isEntered) {
                 canvas?.drawCircle(
                     (3 * index + 2) * activePinRadius,
-                    viewRect.height() / 2f,
+                    pinYLocation,
                     activePinRadius,
                     activePinPaint
                 )
             } else {
                 canvas?.drawCircle(
                     (3 * index + 2) * activePinRadius,
-                    viewRect.height() / 2f,
+                    pinYLocation,
                     inActivePinRadius,
                     inActivePinPaint
                 )
@@ -159,6 +166,7 @@ class HaloPinView @JvmOverloads constructor(
 
     fun setNumberOfPins(numberOfPins: Int) {
         pinCounts = numberOfPins
+        invalidate()
     }
 
     fun deleteEnteredPins() {
@@ -189,20 +197,44 @@ class HaloPinView @JvmOverloads constructor(
         inActivePinRadius = radius
     }
 
-    private fun calculateRadiusMetrics() {
+    private fun measureWidth(widthMeasureSpec: Int): Int {
+        val specMode = MeasureSpec.getMode(widthMeasureSpec)
+        val specSize = MeasureSpec.getSize(widthMeasureSpec)
+
+        return when (specMode) {
+            MeasureSpec.EXACTLY -> specSize
+            else -> getTotalWidth().toInt()
+        }
+    }
+
+    private fun measureHeight(heightMeasureSpec: Int): Int {
+        val specMode = MeasureSpec.getMode(heightMeasureSpec)
+        val specSize = MeasureSpec.getSize(heightMeasureSpec)
+
+        return when (specMode) {
+            MeasureSpec.EXACTLY -> specSize
+            else -> activePinRadius.toInt() * 2 + paddingTop + paddingBottom
+        }
+    }
+
+    private fun calculateRadiusMetrics(measuredWidth: Int, measuredHeight: Int) {
         if (inActivePinRadius > activePinRadius) {
             activePinRadius = inActivePinRadius
             inActivePinRadius = activePinRadius / 2f
         }
 
-        if (activePinRadius > viewRect.height() / 2f) {
-            activePinRadius = viewRect.height() / (2f / 3f)
-            inActivePinRadius = activePinRadius / 2
+        if (activePinRadius > measuredHeight / 2f) {
+            activePinRadius = measuredHeight / (2f / 3f)
+            if (inActivePinRadius > activePinRadius) {
+                inActivePinRadius = activePinRadius / (2f / 3f)
+            }
         }
 
-        if (viewRect.width() < getTotalWidth()) {
-            activePinRadius = viewRect.width() / getSumOfVertices()
-            inActivePinRadius = activePinRadius / 2f
+        if (measuredWidth < getTotalWidth()) {
+            activePinRadius = measuredWidth.toFloat() / getSumOfVertices()
+            if (inActivePinRadius > activePinRadius) {
+                inActivePinRadius = activePinRadius / (2f / 3f)
+            }
         }
     }
 
