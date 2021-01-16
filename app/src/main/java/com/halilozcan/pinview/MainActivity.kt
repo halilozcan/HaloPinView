@@ -12,7 +12,7 @@ class MainActivity : AppCompatActivity() {
 
         pin_view.apply {
             setAnimationDuration(350L)
-            setCorrectPin(1967)
+            setCorrectPin("1967")
             setAnimationState(true)
             setOnPinFilledListener {
                 // Do whatever you want with pin

@@ -34,21 +34,21 @@ class HaloPinView @JvmOverloads constructor(
 
     private var lastPinIndex = -1
 
-    private var pinCounts = 4
+    private var pinCounts = DEFAULT_PIN_COUNT
 
     private var pinXLocations = Array(pinCounts) { 0f }
 
-    private var animationDuration = 1000L
+    private var animationDuration = ANIMATION_DURATION
 
-    private var inActivePinRadius = 10f
-    private var activePinRadius = 20f
+    private var inActivePinRadius = INACTIVE_RADIUS
+    private var activePinRadius = ACTIVE_PIN_RADIUS
 
     private var inActivePinColor = Color.DKGRAY
     private var activePinColor = Color.WHITE
 
-    private var onPinFilledListener: ((Int) -> Unit)? = null
+    private var onPinFilledListener: ((String) -> Unit)? = null
 
-    private var correctPin = Integer.MIN_VALUE
+    private var correctPin = EMPTY_PLACE_HOLDER
 
     private var isCorrectPinEntered = false
     private var isAnimationActive = false
@@ -95,11 +95,9 @@ class HaloPinView @JvmOverloads constructor(
         }
         activePinPaint.color = activePinColor
         activePinPaint.style = Paint.Style.FILL_AND_STROKE
-        activePinPaint.isAntiAlias = true
 
         inActivePinPaint.color = inActivePinColor
         inActivePinPaint.style = Paint.Style.FILL_AND_STROKE
-        inActivePinPaint.isAntiAlias = true
         initPinItems()
     }
 
@@ -136,7 +134,7 @@ class HaloPinView @JvmOverloads constructor(
         }
     }
 
-    fun setOnPinFilledListener(onPinFilledListener: ((Int) -> Unit)?) {
+    fun setOnPinFilledListener(onPinFilledListener: ((String) -> Unit)?) {
         this.onPinFilledListener = onPinFilledListener
     }
 
@@ -150,7 +148,7 @@ class HaloPinView @JvmOverloads constructor(
         }
     }
 
-    fun setCorrectPin(correctPin: Int) {
+    fun setCorrectPin(correctPin: String) {
         this.correctPin = correctPin
         isCorrectPinEntered = true
     }
@@ -219,8 +217,7 @@ class HaloPinView @JvmOverloads constructor(
 
     private fun calculateRadiusMetrics(measuredWidth: Int, measuredHeight: Int) {
         if (inActivePinRadius > activePinRadius) {
-            activePinRadius = inActivePinRadius
-            inActivePinRadius = activePinRadius / 2f
+            throw Exception("Inactive pin radius can not be greater than active pin radius")
         }
 
         if (activePinRadius > measuredHeight / 2f) {
@@ -265,12 +262,12 @@ class HaloPinView @JvmOverloads constructor(
 
     private fun getSumOfVertices() = ((2 * pinCounts) + (pinCounts + 1))
 
-    private fun getEnteredPin(): Int {
+    private fun getEnteredPin(): String {
         val pinBuilder = StringBuilder()
         pinItems.forEach {
             pinBuilder.append(it.number)
         }
-        return pinBuilder.toString().toInt()
+        return pinBuilder.toString()
     }
 
     private fun initPinItems() {
@@ -287,5 +284,13 @@ class HaloPinView @JvmOverloads constructor(
     private fun startWrongAnswerAnimation() {
         pinWiggleAnimator.duration = animationDuration
         pinWiggleAnimator.start()
+    }
+
+    companion object {
+        private const val INACTIVE_RADIUS = 10f
+        private const val ACTIVE_PIN_RADIUS = 20f
+        private const val ANIMATION_DURATION = 1000L
+        private const val DEFAULT_PIN_COUNT = 4
+        private const val EMPTY_PLACE_HOLDER = ""
     }
 }
