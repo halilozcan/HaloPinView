@@ -34,26 +34,27 @@ class HaloPinView @JvmOverloads constructor(
 
     private var lastPinIndex = -1
 
-    private var pinCounts = DEFAULT_PIN_COUNT
+    private var pinCount = DEFAULT_PIN_COUNT
 
-    private var pinXLocations = Array(pinCounts) { 0f }
+    private var pinXLocations = Array(pinCount) { 0f }
 
-    private var animationDuration = ANIMATION_DURATION
+    private var animationDuration = DEFAULT_ANIMATION_DURATION
 
-    private var inActivePinRadius = INACTIVE_RADIUS
-    private var activePinRadius = ACTIVE_PIN_RADIUS
+    private var inActivePinRadius = DEFAULT_INACTIVE_RADIUS
+    private var activePinRadius = DEFAULT_ACTIVE_PIN_RADIUS
 
     private var inActivePinColor = Color.DKGRAY
     private var activePinColor = Color.WHITE
 
     private var onPinFilledListener: ((String) -> Unit)? = null
 
-    private var correctPin = EMPTY_PLACE_HOLDER
+    private var correctPin: String? = EMPTY_PLACE_HOLDER
 
-    private var isCorrectPinEntered = false
     private var isAnimationActive = false
 
     private var pinYLocation = 0f
+
+    private var pinConfig: PinConfig
 
     private val pinWiggleAnimator = ObjectAnimator.ofFloat(
         this,
@@ -79,8 +80,8 @@ class HaloPinView @JvmOverloads constructor(
 
     init {
         context.withStyledAttributes(attributeSet, R.styleable.HaloPinView) {
-            pinCounts = getInt(R.styleable.HaloPinView_pinCount, 4)
-            pinXLocations = Array(pinCounts) { 0f }
+            pinCount = getInt(R.styleable.HaloPinView_pinCount, 4)
+            pinXLocations = Array(pinCount) { 0f }
             inActivePinRadius =
                 getDimension(R.styleable.HaloPinView_inActiveRadius, inActivePinRadius)
             activePinRadius = getDimension(R.styleable.HaloPinView_activeRadius, activePinRadius)
@@ -92,19 +93,33 @@ class HaloPinView @JvmOverloads constructor(
                 R.styleable.HaloPinView_animationDuration,
                 animationDuration.toInt()
             ).toLong()
+            correctPin = getString(R.styleable.HaloPinView_correctPin) ?: correctPin
         }
-        activePinPaint.color = activePinColor
+
+        pinConfig = PinConfig.Builder()
+            .inActivePinRadius(inActivePinRadius)
+            .activePinRadius(activePinRadius)
+            .animationDuration(animationDuration)
+            .animationActivationState(isAnimationActive)
+            .pinCount(pinCount)
+            .inActivePinColor(inActivePinColor)
+            .activePinColor(activePinColor)
+            .correctPin(correctPin)
+            .build()
+
+        activePinPaint.color = pinConfig.activePinColor
         activePinPaint.style = Paint.Style.FILL_AND_STROKE
 
-        inActivePinPaint.color = inActivePinColor
+        inActivePinPaint.color = pinConfig.inActivePinColor
         inActivePinPaint.style = Paint.Style.FILL_AND_STROKE
+
         initPinItems()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-        val measuredWidth = if (pinCounts <= 0) 0 else measureWidth(widthMeasureSpec)
-        val measuredHeight = if (pinCounts <= 0) 0 else measureHeight(heightMeasureSpec)
+        val measuredWidth = if (pinConfig.pinCount <= 0) 0 else measureWidth(widthMeasureSpec)
+        val measuredHeight = if (pinConfig.pinCount <= 0) 0 else measureHeight(heightMeasureSpec)
 
         pinYLocation = measuredHeight.toFloat() / 2f
 
@@ -118,16 +133,16 @@ class HaloPinView @JvmOverloads constructor(
         pinItems.forEachIndexed { index, pinItem ->
             if (pinItem.isEntered) {
                 canvas?.drawCircle(
-                    (3 * index + 2) * activePinRadius,
+                    (3 * index + 2) * pinConfig.activePinRadius,
                     pinYLocation,
-                    activePinRadius,
+                    pinConfig.activePinRadius,
                     activePinPaint
                 )
             } else {
                 canvas?.drawCircle(
-                    (3 * index + 2) * activePinRadius,
+                    (3 * index + 2) * pinConfig.activePinRadius,
                     pinYLocation,
-                    inActivePinRadius,
+                    pinConfig.inActivePinRadius,
                     inActivePinPaint
                 )
             }
@@ -138,61 +153,32 @@ class HaloPinView @JvmOverloads constructor(
         this.onPinFilledListener = onPinFilledListener
     }
 
-    fun enterPin(number: Int) {
+    fun enterPin(pin: String) {
         if (lastPinIndex != pinItems.lastIndex) {
             invalidate()
-            pinItems[++lastPinIndex] = PinItem(number, true)
+            pinItems[++lastPinIndex] = PinItem(pin, true)
             if (lastPinIndex == pinItems.lastIndex) {
                 finishEnterPin()
             }
         }
     }
 
-    fun setCorrectPin(correctPin: String) {
-        this.correctPin = correctPin
-        isCorrectPinEntered = true
-    }
-
-    fun getItemCount() = pinCounts
-
     fun deletePin() {
         if (lastPinIndex != -1) {
-            pinItems[lastPinIndex--] = PinItem(0, false)
+            pinItems[lastPinIndex--] = PinItem("", false)
             invalidate()
         }
     }
 
-    fun setNumberOfPins(numberOfPins: Int) {
-        pinCounts = numberOfPins
+    fun getItemCount() = pinConfig.pinCount
+
+    fun setPinConfig(pinConfig: PinConfig) {
+        this.pinConfig = pinConfig
         invalidate()
     }
 
     fun deleteEnteredPins() {
         initPinItems()
-    }
-
-    fun setAnimationDuration(animationDurationInMillisecond: Long) {
-        animationDuration = animationDurationInMillisecond
-    }
-
-    fun setAnimationState(isAnimationActive: Boolean) {
-        this.isAnimationActive = isAnimationActive
-    }
-
-    fun setActivePinColor(color: Int) {
-        activePinColor = color
-    }
-
-    fun setInActivePinColor(color: Int) {
-        inActivePinColor = color
-    }
-
-    fun setActivePinRadius(radius: Float) {
-        activePinRadius = radius
-    }
-
-    fun setInActivePinRadius(radius: Float) {
-        inActivePinRadius = radius
     }
 
     private fun measureWidth(widthMeasureSpec: Int): Int {
@@ -211,32 +197,32 @@ class HaloPinView @JvmOverloads constructor(
 
         return when (specMode) {
             MeasureSpec.EXACTLY -> specSize
-            else -> activePinRadius.toInt() * 2 + paddingTop + paddingBottom
+            else -> pinConfig.activePinRadius.toInt() * 2 + paddingTop + paddingBottom
         }
     }
 
     private fun calculateRadiusMetrics(measuredWidth: Int, measuredHeight: Int) {
-        if (inActivePinRadius > activePinRadius) {
+        if (pinConfig.inActivePinRadius > pinConfig.activePinRadius) {
             throw Exception("Inactive pin radius can not be greater than active pin radius")
         }
 
-        if (activePinRadius > measuredHeight / 2f) {
-            activePinRadius = measuredHeight / (2f / 3f)
-            if (inActivePinRadius > activePinRadius) {
-                inActivePinRadius = activePinRadius / (2f / 3f)
+        if (pinConfig.activePinRadius > measuredHeight / 2f) {
+            pinConfig.activePinRadius = measuredHeight / (2f / 3f)
+            if (pinConfig.inActivePinRadius > activePinRadius) {
+                pinConfig.inActivePinRadius = activePinRadius / (2f / 3f)
             }
         }
 
         if (measuredWidth < getTotalWidth()) {
-            activePinRadius = measuredWidth.toFloat() / getSumOfVertices()
-            if (inActivePinRadius > activePinRadius) {
-                inActivePinRadius = activePinRadius / (2f / 3f)
+            pinConfig.activePinRadius = measuredWidth.toFloat() / getSumOfVertices()
+            if (inActivePinRadius > pinConfig.activePinRadius) {
+                pinConfig.inActivePinRadius = pinConfig.activePinRadius / (2f / 3f)
             }
         }
     }
 
     private fun finishEnterPin() {
-        if (isCorrectPinEntered) {
+        if (pinConfig.isCorrectPinEntered) {
             if (isEnteredPinOk()) {
                 onPinFilledListener?.invoke(getEnteredPin())
                 initPinItems()
@@ -256,16 +242,16 @@ class HaloPinView @JvmOverloads constructor(
 
     private fun getTotalWidth() = getTotalWidthOfSpaces() + getTotalWidthOfCircles()
 
-    private fun getTotalWidthOfSpaces() = (activePinRadius * (pinCounts + 1))
+    private fun getTotalWidthOfSpaces() = (pinConfig.activePinRadius * (pinConfig.pinCount + 1))
 
-    private fun getTotalWidthOfCircles() = (pinCounts * 2 * activePinRadius)
+    private fun getTotalWidthOfCircles() = (pinConfig.pinCount * 2 * activePinRadius)
 
-    private fun getSumOfVertices() = ((2 * pinCounts) + (pinCounts + 1))
+    private fun getSumOfVertices() = ((2 * pinConfig.pinCount) + (pinConfig.pinCount + 1))
 
     private fun getEnteredPin(): String {
         val pinBuilder = StringBuilder()
         pinItems.forEach {
-            pinBuilder.append(it.number)
+            pinBuilder.append(it.pin)
         }
         return pinBuilder.toString()
     }
@@ -273,24 +259,25 @@ class HaloPinView @JvmOverloads constructor(
     private fun initPinItems() {
         lastPinIndex = -1
         pinItems.clear()
-        repeat(pinCounts) {
+        repeat(pinConfig.pinCount) {
             pinItems.add(PinItem())
         }
         invalidate()
     }
 
-    private fun isEnteredPinOk() = getEnteredPin() == correctPin
+    private fun isEnteredPinOk() = getEnteredPin() == pinConfig.correctPin
 
     private fun startWrongAnswerAnimation() {
-        pinWiggleAnimator.duration = animationDuration
+        pinWiggleAnimator.duration = pinConfig.animationDuration
         pinWiggleAnimator.start()
     }
 
     companion object {
-        private const val INACTIVE_RADIUS = 10f
-        private const val ACTIVE_PIN_RADIUS = 20f
-        private const val ANIMATION_DURATION = 1000L
-        private const val DEFAULT_PIN_COUNT = 4
-        private const val EMPTY_PLACE_HOLDER = ""
+        const val DEFAULT_INACTIVE_RADIUS = 10f
+        const val DEFAULT_ACTIVE_PIN_RADIUS = 20f
+        const val DEFAULT_ANIMATION_DURATION = 1000L
+        const val DEFAULT_PIN_COUNT = 4
+        const val EMPTY_PLACE_HOLDER = ""
+        const val DEFAULT_ANIMATION_STATE = false
     }
 }

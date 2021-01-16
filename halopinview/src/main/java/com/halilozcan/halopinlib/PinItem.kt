@@ -1,5 +1,7 @@
 package com.halilozcan.halopinlib
 
+import com.halilozcan.halopinlib.HaloPinView.Companion.EMPTY_PLACE_HOLDER
+
 
 // Code with ❤
 //┌─────────────────────────────┐
@@ -10,4 +12,4 @@ package com.halilozcan.halopinlib
 //│ 12/7/20                     │
 //└─────────────────────────────┘
 
-data class PinItem(val number: Int = 0, val isEntered: Boolean = false)
+data class PinItem(val pin: String = EMPTY_PLACE_HOLDER, val isEntered: Boolean = false)

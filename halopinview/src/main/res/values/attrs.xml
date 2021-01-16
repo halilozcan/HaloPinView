@@ -9,5 +9,6 @@
         <attr name="inActivePinColor" format="color" />
         <attr name="isAnimationActive" format="boolean" />
         <attr name="animationDuration" format="integer" />
+        <attr name="correctPin" format="string" />
     </declare-styleable>
 </resources>
