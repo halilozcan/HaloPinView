@@ -7,8 +7,11 @@ A library for entering pins through wiggle animator based on circle shapes
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Platform](https://img.shields.io/badge/platform-android-green.svg)](http://developer.android.com/index.html)
 [![API](https://img.shields.io/badge/API-21%2B-brightgreen.svg?style=flat)](https://android-arsenal.com/api?level=17)
-<a href="https://github.com/halilozcan"><img alt="Profile" src="https://img.shields.io/badge/github-halilozcan-blue"/></a> 
-</p>
+<a href="https://github.com/halilozcan"><img alt="Profile" src="https://img.shields.io/badge/github-halilozcan-blue"/></a>
+
+</br>
+
+![Sample Gif](https://github.com/halilozcan/HaloPinView/blob/master/arts/sample.gif)
 
 XML
 ```xml
