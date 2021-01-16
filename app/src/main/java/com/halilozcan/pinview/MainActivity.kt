@@ -11,15 +11,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        pin_view.apply {
-            setPinConfig(
-                PinConfig.Builder()
-                    .correctPin("1967")
-                    .build()
-            )
-            setOnPinFilledListener {
-                // Do whatever you want with pin
-            }
+        pin_view.setOnPinFilledListener {
+
         }
 
         simulate_pin_button.setOnClickListener {
