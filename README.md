@@ -13,6 +13,13 @@ A library for entering pins through wiggle animator based on circle shapes
 
 ![Sample Gif](https://github.com/halilozcan/HaloPinView/blob/master/arts/sample.gif)
 
+Installation
+```gradle
+dependencies {
+  implementation 'com.github.halilozcan:HaloPinView:1.0'
+}
+```
+
 XML
 ```xml
 <com.halilozcan.halopinlib.HaloPinView
