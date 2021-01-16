@@ -3,8 +3,8 @@
 
     <declare-styleable name="HaloPinView">
         <attr name="pinCount" format="integer" />
-        <attr name="inActiveRadius" format="dimension" />
-        <attr name="activeRadius" format="dimension" />
+        <attr name="inActivePinRadius" format="dimension" />
+        <attr name="activePinRadius" format="dimension" />
         <attr name="activePinColor" format="color" />
         <attr name="inActivePinColor" format="color" />
         <attr name="isAnimationActive" format="boolean" />

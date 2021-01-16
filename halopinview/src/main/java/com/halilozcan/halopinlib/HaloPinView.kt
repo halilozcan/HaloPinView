@@ -83,8 +83,8 @@ class HaloPinView @JvmOverloads constructor(
             pinCount = getInt(R.styleable.HaloPinView_pinCount, 4)
             pinXLocations = Array(pinCount) { 0f }
             inActivePinRadius =
-                getDimension(R.styleable.HaloPinView_inActiveRadius, inActivePinRadius)
-            activePinRadius = getDimension(R.styleable.HaloPinView_activeRadius, activePinRadius)
+                getDimension(R.styleable.HaloPinView_inActivePinRadius, inActivePinRadius)
+            activePinRadius = getDimension(R.styleable.HaloPinView_activePinRadius, activePinRadius)
             inActivePinColor = getColor(R.styleable.HaloPinView_inActivePinColor, inActivePinColor)
             activePinColor = getColor(R.styleable.HaloPinView_activePinColor, activePinColor)
             isAnimationActive =
